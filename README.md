@@ -568,7 +568,8 @@ $ nano namelist.input
 ## Running WRF process
 ```console
 $ ./real.exe
-$ .wrf.exe
+$ mpirun -n 2 ./wrf.exe &
+$ tail -f rsl.out.0000
 
 ```
 
