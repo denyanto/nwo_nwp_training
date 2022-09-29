@@ -233,7 +233,7 @@ $ mpirun -n 16 ./wrf.exe &
 $ tail -f rsl.out.0000
 ```
 
-## Running WRF process with **sbatch*
+## Running WRF process with **sbatch**
 
 ```console
 $ nano job.sh
