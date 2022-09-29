@@ -424,8 +424,8 @@ $ nano namelist.wps
  parent_grid_ratio = 1,3,3,
  i_parent_start    = 1,99,122,
  j_parent_start    = 1,52,117,
- e_we          = 600,607,457,
- e_sn          = 300,298,346,
+ e_we          = 100,607,457,
+ e_sn          = 100,298,346,
  geog_data_res = '30s','usgs_lakes+default','usgs_lakes+default',
  dx = 9000,
  dy = 9000,
@@ -487,12 +487,12 @@ $ nano namelist.input
  /
 
  &domains
- time_step                           = 15,
+ time_step                           = 45,
  time_step_fract_num                 = 0,
  time_step_fract_den                 = 1,
  max_dom                             = 1,
- e_we                                = 600,    220,
- e_sn                                = 300,    214,
+ e_we                                = 100,    220,
+ e_sn                                = 100,    214,
  e_vert                              = 45,     45,
  dzstretch_s                         = 1.1
  p_top_requested                     = 5000,

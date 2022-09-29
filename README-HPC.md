@@ -148,7 +148,7 @@ $ nano namelist.input
  /
 
  &domains
- time_step                           = 15,
+ time_step                           = 45,
  time_step_fract_num                 = 0,
  time_step_fract_den                 = 1,
  max_dom                             = 1,
