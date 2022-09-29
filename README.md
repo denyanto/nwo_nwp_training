@@ -408,6 +408,9 @@ $ ln -sf ../WRF/run/* .
 $ rm namelist.input
 $ nano namelist.wps
 
+```
+
+```console
 &share
  wrf_core = 'ARW',
  max_dom = 1,
@@ -446,12 +449,18 @@ $ nano namelist.wps
  fg_name = 'FILE',
 /
 
+```
+
+```console
 $ ./link_grib.csh /home/<your-user-name>/Documents/gfs*
 $ ./geogrid.exe
 $ ./ungrib.exe
 $ ./metgrid.exe
 $ nano namelist.input
 
+```
+
+```console
  &time_control
  run_days                            = 0,
  run_hours                           = 3,
@@ -554,7 +563,18 @@ $ nano namelist.input
  nio_groups = 1,
  /
 
+```
+
+## Running WRF process
+```console
 $ ./real.exe
 $ .wrf.exe
 
 ```
+
+## Check the results
+
+```console
+$ ncdump wrfout_d01_2022-09-27_00:00:00
+```
+## Finish

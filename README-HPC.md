@@ -60,6 +60,9 @@ $ rm namelist.input
 ```console
 $ nano namelist.wps
 
+```
+
+```console
 &share
  wrf_core = 'ARW',
  max_dom = 1,
@@ -116,6 +119,9 @@ $ ./metgrid.exe
 ```console
 $ nano namelist.input
 
+```
+
+```console
  &time_control
  run_days                            = 0,
  run_hours                           = 3,
@@ -223,8 +229,36 @@ $ nano namelist.input
 
 ```console
 $ ./real.exe
-$ mpirun -n 4 ./wrf.exe &
+$ mpirun -n 16 ./wrf.exe &
 $ tail -f rsl.out.0000
+```
+
+## Running WRF process with **sbatch*
+
+```console
+$ nano job.sh
+```
+
+```console
+	#!/bin/bash
+	# sbatch config file
+	# for running WRF (wrf.exe) using openMP
+
+	#SBATCH -J job1          			# Job name
+	#SBATCH -o result.txt               # Name of stdout output file (%j expands to jobId)
+	#SBATCH --ntasks=20                 # Total number of nodes requested
+	#SBATCH --cpus-per-task=88          # Total number of mpi tasks requested
+	#SBATCH --mem-per-cpu=1000          # Total number of memory requested (mb)
+	#SBATCH -t 01:30:00                 # Run time (hh:mm:ss) - 1.5 hours
+
+	# Launch MPI-based executable
+	cd /home/<your-user-name>/NWP_<your-name>/run_wrf
+	mpirun ./wrf.exe
+```
+
+```console
+$ sbatch job.sh
+$ squeue
 
 ```
 
