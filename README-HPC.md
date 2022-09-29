@@ -35,6 +35,7 @@ $ ln -sf /opt/ohpc/pub/model/WRFDA .
 $ ln -sf /opt/ohpc/pub/model/WRFDomainWizard .
 $ ln -sf /opt/ohpc/pub/model/ARWpost .
 $ ln -sf /opt/ohpc/pub/model/WPS_GEOG .
+$ mkdir DATA 	# for input data (GFS etc)
 
 ```
 
@@ -51,6 +52,12 @@ $ ln -sf ../WPS/ungrib/Variable_Tables/Vtable.GFS Vtable
 $ ln -sf ../WPS/link_grib.csh .
 $ ln -sf ../WRF/run/* .
 $ rm namelist.input
+```
+
+
+## Setting namelist.wps
+
+```console
 $ nano namelist.wps
 
 &share
@@ -77,7 +84,7 @@ $ nano namelist.wps
  truelat1  = -2.613,
  truelat2  = 0,
  stand_lon = 118.815,
- geog_data_path = '/home/<your-user-name>/WPS_GEOG',
+ geog_data_path = '/home/<your-user-name>/NWP_<your-name>/WPS_GEOG',
  ref_x = 310.5,
  ref_y = 156.0,
 /
@@ -90,11 +97,23 @@ $ nano namelist.wps
 &metgrid
  fg_name = 'FILE',
 /
+```
+
+
+## Provideing input data and running WPS
+
+```console
 
 $ ./link_grib.csh /home/<your-user-name>/NWP_<your-name>/DATA/gfs*
 $ ./geogrid.exe
 $ ./ungrib.exe
 $ ./metgrid.exe
+```
+
+
+## Setting namelist.input
+
+```console
 $ nano namelist.input
 
  &time_control
@@ -198,8 +217,20 @@ $ nano namelist.input
  nio_tasks_per_group = 0,
  nio_groups = 1,
  /
+```
 
+## Running WRF process
+
+```console
 $ ./real.exe
-$ .wrf.exe
+$ mpirun -n 4 ./wrf.exe &
+$ tail -f rsl.out.0000
 
 ```
+
+## Check the results
+
+```console
+$ ncdump wrfout_d01_2022-09-27_00:00:00
+```
+## Finish
