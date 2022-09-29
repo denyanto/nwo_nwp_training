@@ -242,18 +242,18 @@ $ nano job.sh
 ```console
 #!/bin/bash
 # sbatch config file
-# for running WRF (wrf.exe) using openMP
+# for running WRF (wrf.exe) using sbatch
 
-#SBATCH -J job1          			# Job name
+#SBATCH -J job1                     # Job name
 #SBATCH -o result.txt               # Name of stdout output file (%j expands to jobId)
-#SBATCH --ntasks=20                 # Total number of nodes requested
-#SBATCH --cpus-per-task=88          # Total number of mpi tasks requested
-#SBATCH --mem-per-cpu=1000          # Total number of memory requested (mb)
+#SBATCH -N 1                  		# Total number of nodes requested
+#SBATCH -n 2          				# Total number of mpi tasks requested
+#SBATCH --mem-per-cpu=8000
 #SBATCH -t 01:30:00                 # Run time (hh:mm:ss) - 1.5 hours
 
 # Launch MPI-based executable
 cd /home/<your-user-name>/NWP_<your-name>/run_wrf
-mpirun ./wrf.exe
+mpirun wrf.exe
 ```
 
 ```console
