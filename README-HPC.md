@@ -100,7 +100,7 @@ $ nano namelist.wps
 ```
 
 
-## Provideing input data and running WPS
+## Linking input data and running WPS
 
 ```console
 
