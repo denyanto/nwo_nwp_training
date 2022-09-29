@@ -91,7 +91,7 @@ $ nano namelist.wps
  fg_name = 'FILE',
 /
 
-$ ./link_grib.csh /home/<your-user-name>/Documents/gfs*
+$ ./link_grib.csh /home/<your-user-name>/NWP_<your-name>/DATA/gfs*
 $ ./geogrid.exe
 $ ./ungrib.exe
 $ ./metgrid.exe
