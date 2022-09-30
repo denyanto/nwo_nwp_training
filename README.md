@@ -8,7 +8,7 @@ These are some installation notes taken in the process of installing WRF version
 
 ```console
 $ sudo yum groupinstall 'Development Tools'
-$ sudo yum install csh gfortran m4
+$ sudo yum install csh gcc-gfortran m4
 ```
 
 ## System environment tests
