@@ -7,7 +7,7 @@ These are some installation notes taken in the process of installing WRF on a HP
 
 
 ```console
-$ ssh test@182.16.251.51 -p 1234
+$ ssh <your-user-name>@182.16.251.51 -p 1234
 ```
 
 ## Create a work directori
