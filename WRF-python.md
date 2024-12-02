@@ -647,17 +647,676 @@ print(hgt)
 ### Computing a Diagnostic Variable with getvar
 In this example, we're going to compute sea level pressure.
 ```console
+from netCDF4 import Dataset
+from wrf import getvar
 
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+slp = getvar(wrf_file, "slp", timeidx=0, units="hPa")
 ```
-
+### Example 3.2: Using getvar to compute Sea Level Pressure (SLP)
+Also try changing the units for by specifiying the following values: 'hPa', 'Pa', 'atm', 'mmhg'
 ```console
+from netCDF4 import Dataset
+from wrf import getvar
 
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+slp = getvar(wrf_file, "slp", timeidx=0, units="mmhg")
+print(slp)
 ```
-
+### Combining Across Multiple Files
+WRF-Python has two methods for combining a variable across multiple files:
+* cat - combines the the variable along the Time dimension (Note: you must order the files yourself)
+* join - creates a new left-most dimension for each file
+To extract all times in to a single array, set timeidx to wrf.ALL_TIMES (an alias for None).
+In this example, we're using the 'cat' method, which is the default.
 ```console
+from netCDF4 import Dataset
+from wrf import getvar, ALL_TIMES
 
+file_paths = file_path = ["/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00", "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_01%3A00%3A00"]
+wrf_files = [Dataset(file_paths[0]), Dataset(file_paths[1])]
+
+# Explicitly specifying 'cat', but this is the default
+slp = getvar(wrf_files, "slp", timeidx=ALL_TIMES, method="cat")
 ```
-
+### Example 3.3: Combining Files Using the 'cat' Method
 ```console
+from netCDF4 import Dataset
+from wrf import getvar, ALL_TIMES
 
+file_paths = file_path = ["/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00", "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_01%3A00%3A00"]
+wrf_files = [Dataset(file_paths[0]), Dataset(file_paths[1])]
+
+# Explicitly specifying 'cat', but this is the default
+slp = getvar(wrf_files, "slp", timeidx=ALL_TIMES, method="cat")
+print(slp)
+```
+### Example 3.4: Combining Files Using the 'join' Method
+```console
+from netCDF4 import Dataset
+from wrf import getvar, ALL_TIMES
+
+file_paths = file_path = ["/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00", "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_01%3A00%3A00"]
+wrf_files = [Dataset(file_paths[0]), Dataset(file_paths[1])]
+
+# Explicitly specifying 'cat', but this is the default
+slp = getvar(wrf_files, "slp", timeidx=ALL_TIMES, method="join")
+print(slp)
+```
+### Interpolation Routines
+* interplevel - linear interpolation to a horizontal plane at a specified height or pressure level.
+* vertcross - vertical cross section interpolation to a vertical plane through two specified points (or a pivot point and angle).
+* vinterp - interpolates to a "surface", which could be pressure levels or temperature levels like theta-e. A smarter version of interplevel.
+### The interplevel function
+* The easiest way to get a field at a specified height or pressure vertical level (500 mb, 5000 m, etc).
+* Uses linear interpolation, which is fast and generally good enough for plotting.
+* You should use vinterp for geopotential height if you want more accuracy, since the interpolation is done with the decaying exponential pressure profile.
+#### interplevel Example
+Let's get the 500 hPa geopotential height in decameters
+```console
+from netCDF4 import Dataset
+from wrf import getvar, interplevel
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+pres = getvar(wrf_file, "pressure", timeidx=0)
+ht = getvar(wrf_file, "z", timeidx=0, units="dm")
+ht_500 = interplevel(ht, pres, 500.0)
+```
+### Example 3.5: Interpolate to 500 hPa Using interplevel
+```console
+from netCDF4 import Dataset
+from wrf import getvar, interplevel
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+pres = getvar(wrf_file, "pressure", timeidx=0)
+ht = getvar(wrf_file, "z", timeidx=0, units="dm")
+ht_500 = interplevel(ht, pres, 500.0)
+print(ht_500)
+```
+### The vertcross function
+* The idea is to draw a horizontal line at the surface, and the cross section is defined as a vertical plane extending up from this line.
+* The new x-axis for a cross section plot is the points along the line you made. The line can be defined by:
+  1. defining a start point and an end point by using (x,y) grid coordinates or (latitude, longitude) coordinates.
+  2. defining a pivot point and an angle, which is useful for cross sections that will span most of the domain.
+* The new y-axis will be a set of vertical levels at default intervals (1% increments), or you can choose them yourself.
+### Introducing the CoordPair Class
+A _CoordPair_ is simply used to store (x,y) coordinates, or (lat,lon) coordinates. It is also possible to have (x, y, lat, lon), but that's mostly used for metadata.
+The _CoordPair_ will be used to define your cross section line.
+```console
+from wrf import CoordPair
+
+# Creating an x,y pair
+x_y_pair = CoordPair(x=10, y=20)
+
+# Creating a lat,lon pair
+lat_lon_pair = CoordPair(lat=30.0, lon=-120.0)
+```
+### vertcross Example
+In this example, we're going to define the cross section using a start point and and end point.
+We're going to let the algorithm pick the levels, which are at ~1% increments by default.
+```console
+from netCDF4 import Dataset
+from wrf import getvar, vertcross, CoordPair
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+
+# Making a diagonal cross section line from 
+# bottom left to top right.
+bottom_left = CoordPair(x=0, y=0)
+top_right = CoordPair(x=-1, y=-1)
+
+# Let's get wind speed in kts
+wspd_wdir = getvar(wrf_file, "wspd_wdir", timeidx=0, units="kt")           
+wspd = wspd_wdir[0,:]
+
+# Get the height levels
+ht = getvar(wrf_file, "z", timeidx=0)
+
+# Compute the wind speed cross section
+wspd_cross = vertcross(wspd, ht, start_point=bottom_left, end_point=top_right)
+```
+### Example 3.6: Interpolate to a Vertical Cross Section with vertcross
+```console
+from netCDF4 import Dataset
+from wrf import getvar, vertcross, CoordPair
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+
+# Making a diagonal cross section line from 
+# bottom left to top right.
+bottom_left = CoordPair(x=0, y=0)
+top_right = CoordPair(x=-1, y=-1)
+
+# Let's get wind speed in kts
+wspd_wdir = getvar(wrf_file, "wspd_wdir", timeidx=0, units="kt")           
+wspd = wspd_wdir[0,:]
+
+# Get the height levels
+ht = getvar(wrf_file, "z", timeidx=0)
+
+# Compute the wind speed cross section
+wspd_cross = vertcross(wspd, ht, start_point=bottom_left, end_point=top_right)
+print(wspd_cross)
+```
+### The vinterp function
+* Used for interpolating a field to a type of surface:
+  * pressure
+  * geopotential height
+  * theta
+  * theta-e
+* User must specify the interpolation level(s) on the new surface.
+* A smarter, albeit slower and more complicated, version of interplevel.
+### vinterp Example
+In this example, we're going to interpolate pressure to theta-e levels.
+```console
+from netCDF4 import Dataset
+from wrf import getvar, vinterp 
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path) 
+
+pres = getvar(wrf_file, "pressure", timeidx=0)
+
+# Interpolate pressure to theta-e levels                 
+interp_levels = [280, 285, 290, 292, 294, 
+                 296, 298, 300, 305, 310]
+
+pres_eth = vinterp(wrf_file, 
+                   field=pres, 
+                   vert_coord="theta-e", 
+                   interp_levels=interp_levels, 
+                   extrapolate=False, 
+                   field_type="pressure", 
+                   log_p=False)
+```
+### Example 3.7: Interpolate to Theta-e Levels with vinterp
+```console
+from netCDF4 import Dataset
+from wrf import getvar, vinterp 
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path) 
+
+pres = getvar(wrf_file, "pressure", timeidx=0)
+
+# Interpolate pressure to theta-e levels                 
+interp_levels = [280, 285, 290, 292, 294, 
+                 296, 298, 300, 305, 310]
+
+pres_eth = vinterp(wrf_file, 
+                   field=pres, 
+                   vert_coord="theta-e", 
+                   interp_levels=interp_levels, 
+                   extrapolate=False, 
+                   field_type="pressure", 
+                   log_p=False)
+print(pres_eth)
+```
+### Other Useful Functions
+### to_np
+Converts an xarray.DataArray to a numpy array.
+This is often necessary when passing wrf-python variables to the plotting functions or to a compiled extension module.
+This routine does the following:
+* If no missing/fill values, then it simply calls the xarray.DataArray.values property.
+* If missing/fill values are present, then it replaces the NaN values with the fill value found in the attributes, and returns a MaskedArray.
+### to_np Example
+```console
+from netCDF4 import Dataset
+from wrf import getvar, to_np 
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path) 
+pres_xarray = getvar(wrf_file, "pressure", timeidx=0)
+pres_numpy = to_np(pres_xarray)
+```
+### xy_to_ll and ll_to_xy
+These routines convert to/from grid (x,y) coordinates to/from (lat,lon) coordinates.
+Works with a single point or sequences of points.
+
+### xy_to_ll and ll_to_xy Example
+```console
+from netCDF4 import Dataset
+from wrf import getvar, xy_to_ll, ll_to_xy 
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+
+# Convert (x=20,y=50) and (x=30,y=75) to latitude,longitude
+lat_lon = xy_to_ll(wrf_file, [20,30], [50,75])
+
+# Convert back to x,y
+x_y = ll_to_xy(wrf_file, lat_lon[0,:], lat_lon[1,:])
+```
+### Example 3.8: xy_to_ll and ll_to_xy
+```console
+from netCDF4 import Dataset
+from wrf import getvar, xy_to_ll, ll_to_xy 
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+
+lat_lon = xy_to_ll(wrf_file, [20, 30], [50,75])
+print("lat,lon values")
+print(lat_lon)
+print("\n")
+
+x_y = ll_to_xy(wrf_file, lat_lon[0,:], lat_lon[1,:])
+print("x,y values")
+print(x_y)
+```
+#
+## 4 Plotting
+### Plotting
+* Plotting wrf-python variables in Python can be done using either matplotlib or PyNGL.
+* For this tutorial, we're going to focus on matplotlib (using cartopy for the mapping).
+* As of March 2018, cartopy supports matplotlib 2.x.
+
+### Extremely Brief Overview of Matplotlib
+* Under the hood, matplotlib uses an object oriented API.
+* In simplest terms, a matplotlib plot consists of Figure object that contains an Axes object (or multiple Axes objects).
+* The Axes object is where the action is.
+* The Axes object contains the methods for contouring, making histograms, adding colorbar, etc.
+
+### The pyplot API
+* Most matplotlib users do no need to know much about the underlying object oriented API.
+* Matplotlib includes a series of standalone functions that wrap around the object oriented API.
+* These standalone functions are in the matplotlib.pyplot package and it was designed to look similar to the Matlab API.
+* New users should start here.
+### Example 4.1: Single Wind Barb Example with pyplot
+In this example, we are going to plot a single wind barb in the center of the domain using the pyplot API.
+```console
+from matplotlib import pyplot
+import numpy as np
+
+# Make a 5x5 grid of missing u,v values
+u = np.ma.masked_equal(np.zeros((5,5)), 0)
+v = np.ma.masked_equal(np.zeros((5,5)), 0)
+
+# Add u,v winds to center of domain
+u[2,2] = 10.0
+v[2,2] = 10.0
+
+# Draw a single wind barb in the middle using pyplot API
+# Note:  the axes objects are "hidden" in these functions
+fig = pyplot.figure()
+pyplot.barbs(u, v)
+
+# Set the x and y ranges so the barb is in the middle
+pyplot.xlim(0, 4)
+pyplot.ylim(0, 4)
+
+pyplot.show()
+```
+### Mixing the APIs
+* Often you will find yourself mixing the object oriented API with the pyplot API.
+* This is required when making subplots, but that is beyond the scope of this tutorial.
+* The next example shows how to make the single wind barb using the axes object directly.
+```console
+from matplotlib import pyplot
+import numpy as np
+
+# Make a 5x5 grid of missing u,v values
+u = np.ma.masked_equal(np.zeros((5,5)), 0)
+v = np.ma.masked_equal(np.zeros((5,5)), 0)
+
+# Add u,v winds to center of domain
+u[2,2] = 10.0
+v[2,2] = 10.0
+
+# We'll use pyplot to create the figure and 
+# get the axes
+fig = pyplot.figure()
+ax = pyplot.axes() # <- Now we're using the Axes object directly
+
+# Now use the axes directly to create the barbs
+ax.barbs(u, v)
+
+# Set the x and y ranges using the axes directly
+ax.set_xlim(0, 4)
+ax.set_ylim(0, 4)
+
+pyplot.show()
+```
+### WRF-Python Plotting Helper Functions
+wrf-python has several functions to help with plotting when using cartopy, basemap, or PyNGL.
+* get_cartopy, get_basemap, get_pyngl: Returns the mapping object used by the plotting system.
+* latlon_coords: Returns the latitude and longitude coordinate variables.
+* get_bounds: Returns the geographic boundaries for the variable.
+### Plotting with cartopy
+Cartopy uses the same API as matplotlib by returning a matplotlib.axes.Axes subclass (cartopy.mpl.geoaxes.GeoAxes) when a projection keyword argument is passed to the matplotlib.pyplot.axes function.
+
+### Getting the GeoAxes object
+```console
+import matplotlib.pyplot
+import cartopy.crs
+
+# Create a lat/lon map projection object.
+latlon = cartopy.crs.PlateCarree()
+
+geo_axes = pyplot.axes(projection=latlon)
+```
+### Getting the cartopy Projection Object and Lat/Lon Coordinates Using WRF-Python
+* When xarray is installed and enabled, wrf-python carries the projection information around in the metadata of a variable.
+* You can use the get_cartopy function to extract the cartopy projection object from a variable.
+* You can use the latlon_coords function to get the latitude and longitude points.
+```console
+from netCDF4 import Dataset
+from wrf import (getvar, get_cartopy, latlon_coords)
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+
+terrain = getvar(wrf_file, "ter", timeidx=0)
+cart_proj = get_cartopy(terrain)
+lats, lons = latlon_coords(terrain)
+```
+### Example 4.3: Making a Plot of Terrain
+Let's make a plot of terrain. It's the easiest way to check if your map is correct.
+```console
+import numpy
+from matplotlib import pyplot
+from matplotlib.cm import get_cmap
+from cartopy import crs
+from cartopy.feature import NaturalEarthFeature
+from netCDF4 import Dataset
+from wrf import getvar, to_np, get_cartopy, latlon_coords
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+
+# Get the terrain height
+terrain = getvar(wrf_file, "ter", timeidx=0)
+
+# Get the cartopy object and the lat,lon coords
+cart_proj = get_cartopy(terrain)
+lats, lons = latlon_coords(terrain)
+
+# Create a figure and get the GetAxes object
+fig = pyplot.figure(figsize=(10, 7.5))
+geo_axes = pyplot.axes(projection=cart_proj)
+
+# Download and add the states and coastlines
+# See the cartopy documentation for more on this.
+states = NaturalEarthFeature(category='cultural', 
+                             scale='50m', 
+                             facecolor='none',
+                             name='admin_1_states_provinces_shp')
+geo_axes.add_feature(states, linewidth=.5)
+geo_axes.coastlines('50m', linewidth=0.8)
+
+# Set the contour levels
+levels = numpy.arange(250., 5000., 250.)
+
+# Make the contour lines and fill them.
+pyplot.contour(to_np(lons), to_np(lats), 
+               to_np(terrain), levels=levels, 
+               colors="black",
+               transform=crs.PlateCarree())
+pyplot.contourf(to_np(lons), to_np(lats), 
+                to_np(terrain), levels=levels,
+                transform=crs.PlateCarree(),
+                cmap=get_cmap("terrain"))
+             
+# Add a color bar. The shrink often needs to be set 
+# by trial and error.
+pyplot.colorbar(ax=geo_axes, shrink=.99)
+
+pyplot.show()
+```
+### Cropping
+Sometimes WRF domains are much larger than what you care about.
+
+Plots can be cropped in two ways using wrf-python:
+1. Crop the data before plotting.
+  * Less data to process = faster!
+  * There's a slight risk of issues at borders, but matplotlib seems pretty smart about this.
+2. Crop the domain with matplotlib using x,y axis limits.
+  * Runs slower since all of the domain is contoured.
+  * Should always be correct.
+### Method 1: Cropping then Plotting
+If you are cropping the data, then cartopy should just work without worrying about setting the axis limits, as long as xarray is installed and enabled.
+
+**Let's start by taking a quick look at the full plot of sea level pressure.**
+### First, let's start with a full plot of sea level pressure [no cropping].
+### Example 4.4: Full Plot of Sea Level Pressure
+```console
+import numpy
+from matplotlib import pyplot
+from matplotlib.cm import get_cmap
+from cartopy import crs
+from cartopy.feature import NaturalEarthFeature
+from netCDF4 import Dataset
+from wrf import getvar, to_np, get_cartopy, latlon_coords
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+
+# Get the terrain height
+slp = getvar(wrf_file, "slp", timeidx=0)
+
+# Get the cartopy object and the lat,lon coords
+cart_proj = get_cartopy(slp)
+lats, lons = latlon_coords(slp)
+
+# Create a figure and get the GetAxes object
+fig = pyplot.figure(figsize=(10, 7.5))
+geo_axes = pyplot.axes(projection=cart_proj)
+
+# Download and add the states and coastlines
+# See the cartopy documentation for more on this.
+states = NaturalEarthFeature(category='cultural', 
+                             scale='50m', 
+                             facecolor='none',
+                             name='admin_1_states_provinces_shp')
+geo_axes.add_feature(states, linewidth=.5)
+geo_axes.coastlines('50m', linewidth=0.8)
+
+# Set the contour levels so that all plots match
+levels = numpy.arange(980.,1030.,2.5)
+
+# Make the contour lines and fill them.
+pyplot.contour(to_np(lons), to_np(lats), 
+               to_np(slp), levels=levels, colors="black",
+               transform=crs.PlateCarree())
+pyplot.contourf(to_np(lons), to_np(lats), 
+                to_np(slp), levels=levels, 
+                transform=crs.PlateCarree(),
+                cmap=get_cmap("jet"))
+             
+# Add a color bar. The shrink often needs to be set 
+# by trial and error.
+pyplot.colorbar(ax=geo_axes, shrink=.86)
+
+pyplot.show()
+```
+### Example 4.5: Cropping by Slicing the Data
+Let's crop the data to the lower right quadrant.
+```console
+import numpy
+from matplotlib import pyplot
+from matplotlib.cm import get_cmap
+from cartopy import crs
+from cartopy.feature import NaturalEarthFeature
+from netCDF4 import Dataset
+from wrf import getvar, to_np, get_cartopy, latlon_coords
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+
+# Get the terrain height
+slp = getvar(wrf_file, "slp", timeidx=0)
+
+# Determine the center of the domain in grid coordinates
+slp_shape = slp.shape
+center_y = int(slp_shape[-2]/2.) - 1
+center_x = int(slp_shape[-1]/2.) - 1
+
+# Slice from bottom to middle for y
+# Slice from middle to right for x
+slp_quad = slp[..., 0:center_y+1, center_x:]
+
+# Get the cartopy object and the lat,lon coords
+cart_proj = get_cartopy(slp_quad)
+lats, lons = latlon_coords(slp_quad)
+
+# Create a figure and get the GetAxes object
+fig = pyplot.figure(figsize=(10, 7.5))
+geo_axes = pyplot.axes(projection=cart_proj)
+
+# Download and add the states and coastlines
+# See the cartopy documentation for more on this.
+states = NaturalEarthFeature(category='cultural', 
+                             scale='50m', 
+                             facecolor='none',
+                             name='admin_1_states_provinces_shp')
+geo_axes.add_feature(states, linewidth=.5)
+geo_axes.coastlines('50m', linewidth=0.8)
+
+# Set the contour levels so that all plots match
+levels = numpy.arange(980.,1030.,2.5)
+
+# Make the contour lines and fill them.
+pyplot.contour(to_np(lons), to_np(lats), 
+               to_np(slp_quad), levels=levels, colors="black",
+               transform=crs.PlateCarree())
+pyplot.contourf(to_np(lons), to_np(lats), 
+                to_np(slp_quad), levels=levels, 
+                transform=crs.PlateCarree(),
+                cmap=get_cmap("jet"))
+             
+# Add a color bar. The shrink often needs to be set 
+# by trial and error.
+pyplot.colorbar(ax=geo_axes, shrink=.83)
+
+pyplot.show()
+```
+### Method 2: Cropping by Setting x and y Extents
+This time, let's crop the domain by using the x and y extents in matplotlib.
+Also, we're going to crop the domain using lat,lon geographic boundaries.
+
+### Introducing the GeoBounds class
+To create geographic boundaries, you supply a GeoBounds object constructed with set of bottom_left and top_right CoordPair objects.
+The CoordPair objects need to use the lat and lon arguments.
+```console
+from wrf import CoordPair, GeoBounds
+
+bottom_left = CoordPair(lat=29.5, lon=-110)
+top_right = CoordPair(lat=30.0, lon=-109.3)
+
+geo_bounds = GeoBounds(bottom_left, top_right)
+```
+### Setting the Cartopy Extents
+After setting up the GeoBounds objects, you can use cartopy_xlim and cartopy_ylim functions to set the extents.
+Note: Cartopy also has an API for doing this, but it doesn't work correctly for some projections like RotatedPole.
+```console
+from wrf import (CoordPair, GeoBounds, getvar, 
+                 cartopy_xlim, cartopy_ylim)
+
+file_path = single_wrf_file()
+wrf_file = Dataset(file_path)
+
+slp = getvar(wrf_file, "slp", timeidx=0)
+
+bottom_left = CoordPair(lat=29.5, lon=-110)
+top_right = CoordPair(lat=30.0, lon=-109.3)
+
+geo_bounds = GeoBounds(bottom_left, top_right)
+
+fig = pyplot.figure(figsize=(10, 7.5))
+geo_axes = pyplot.axes(projection=cart_proj)
+
+#. 
+#. Draw contours, add geographic features, etc.
+#. 
+
+xlim = cartopy_xlim(slp, geobounds=geo_bounds)               
+geo_axes.set_xlim(xlim)
+         
+ylim = cartopy_ylim(slp, geobounds=geo_bounds)               
+geo_axes.set_ylim(ylim)
+```
+### Example 4.6: Cropping by Setting the X,Y Extents
+```console
+import numpy
+from matplotlib import pyplot
+from matplotlib.cm import get_cmap
+from cartopy import crs
+from cartopy.feature import NaturalEarthFeature
+from netCDF4 import Dataset
+from wrf import getvar, to_np, get_cartopy, latlon_coords
+from wrf import xy_to_ll, cartopy_xlim, cartopy_ylim
+from wrf import CoordPair, GeoBounds
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+
+# Get the terrain height
+slp = getvar(wrf_file, "slp", timeidx=0)
+
+# Get the cartopy object and the lat,lon coords
+cart_proj = get_cartopy(slp)
+lats, lons = latlon_coords(slp)
+
+# Create a figure and get the GetAxes object
+fig = pyplot.figure(figsize=(10, 7.5))
+geo_axes = pyplot.axes(projection=cart_proj)
+
+# Download and add the states and coastlines
+# See the cartopy documentation for more on this.
+states = NaturalEarthFeature(category='cultural', 
+                             scale='50m', 
+                             facecolor='none',
+                             name='admin_1_states_provinces_shp')
+geo_axes.add_feature(states, linewidth=.5)
+geo_axes.coastlines('50m', linewidth=0.8)
+
+# Set the contour levels so that all plots match
+levels = numpy.arange(980.,1030.,2.5)
+
+# Make the contour lines and fill them.
+pyplot.contour(to_np(lons), to_np(lats), 
+               to_np(slp), levels=levels, colors="black",
+               transform=crs.PlateCarree())
+pyplot.contourf(to_np(lons), to_np(lats), 
+                to_np(slp), levels=levels, 
+                transform=crs.PlateCarree(),
+                cmap=get_cmap("jet"))
+             
+# Add a color bar. The shrink often needs to be set 
+# by trial and error.
+pyplot.colorbar(ax=geo_axes, shrink=.83)
+
+# Set up the x, y extents
+
+# Determine the center of the domain in grid coordinates
+slp_shape = slp.shape
+start_y = 0
+center_y = int(slp_shape[-2]/2.) - 1
+center_x = int(slp_shape[-1]/2.) - 1
+end_x = int(slp_shape[-1]) - 1
+
+# Get the lats and lons for the start, center, and end points
+# (Normally you would just set these yourself)
+center_latlon = xy_to_ll(wrf_file, 
+                         [center_x, end_x], 
+                         [start_y, center_y])
+
+start_lat = center_latlon[0,0]
+end_lat = center_latlon[0,1]
+start_lon = center_latlon[1,0]
+end_lon = center_latlon[1,1]
+
+# Set the extents
+geo_bounds = GeoBounds(CoordPair(lat=start_lat, lon=start_lon),
+                       CoordPair(lat=end_lat, lon=end_lon))
+geo_axes.set_xlim(cartopy_xlim(slp, geobounds=geo_bounds))
+geo_axes.set_ylim(cartopy_ylim(slp, geobounds=geo_bounds))
+
+pyplot.show()
 ```
