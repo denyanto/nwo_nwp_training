@@ -1,6 +1,4 @@
 # WRF-Python Tutorial 2024
-### Danang Eko Nuryanto 
-#### Indonesian Agency for Meteorology Climatology and Geopgysics (BMKG)
 #
 ## What is WRF-Python?
 WRF-Python is a post-processing tool similar to NCL's WRF Package.
@@ -400,8 +398,9 @@ dimensions:
         seed_dim_stag = 8 ;
 variables:
         char Times(Time, DateStrLen) ;
-...
-
+.
+.
+.
 ```
 
 ### Dimensions
@@ -410,23 +409,102 @@ variables:
 * The u-component of the horizontal wind is calculated at the left and right edges of a grid cell. It has one more point in the x direction than the mass grid.
 * The v-component of the horizontal wind is calculated at the bottom and top edges of a grid cell. It has one more point in the y direction than the mass grid.
 * The corners of each grid box are know as the 'staggered' grid, and it has one additional point in both the x and y direction.
-```console
+![image](https://github.com/user-attachments/assets/ce789085-5c2d-48e3-ad7f-157acd68d935)
 
+```console
+dimensions:
+        Time = UNLIMITED ; // (1 currently)
+        DateStrLen = 19 ;
+        west_east = 89 ;
+        south_north = 89 ;
+        bottom_top = 34 ;
+        bio_emissions_dimension_stag = UNLIMITED ; // (0 currently)
+        klevs_for_dvel = 1 ;
+        bottom_top_stag = 35 ;   <-- Extra grid point
+        soil_layers_stag = 4 ;
+        west_east_stag = 90 ;    <-- Extra grid point
+        south_north_stag = 90 ;  <-- Extra grid point
+        seed_dim_stag = 8 ;
+.
+.
+.
+```
+### Variables
+* Each variable is made up of dimensions, attributes, and data values.
+* Pay special attention to the units and coordinates attribute.
+* The coordinates attribute specifies the variables that contain the latitude and longitude information for each grid box (XLONG, XLAT).
+* More recent versions of WRF include an XTIME coordinate.
+* The coordinates are named with Fortran ordering, so they'll be listed in reverse.
+
+```console
+.
+.
+.
+        float LAKEMASK(Time, south_north, west_east) ;
+                LAKEMASK:FieldType = 104 ;
+                LAKEMASK:MemoryOrder = "XY " ;
+                LAKEMASK:description = "LAKE MASK (1 FOR LAND, 0 FOR WATER)" ;
+                LAKEMASK:units = "" ;
+                LAKEMASK:stagger = "" ;
+                LAKEMASK:coordinates = "XLONG XLAT XTIME" ;
+        float SST(Time, south_north, west_east) ;
+                SST:FieldType = 104 ;
+                SST:MemoryOrder = "XY " ;
+                SST:description = "SEA SURFACE TEMPERATURE" ;
+                SST:units = "K" ;
+                SST:stagger = "" ;
+                SST:coordinates = "XLONG XLAT XTIME" ;
+.
+.
+.
+```
+### Global Attributes
+* Provide a description of how the model was set up (resolution, map projection, microphysics, etc)
+* For plotting, the map projection parameters will be the most important.
+* wrf-python uses this information to build the mapping object in your plotting system of choice - basemap, cartopy, pyngl.
+
+```console
+.
+.
+.
+                :CEN_LAT = -0.5240097f ;
+                :CEN_LON = 116.637f ;
+                :TRUELAT1 = -0.524f ;
+                :TRUELAT2 = 0.f ;
+                :MOAD_CEN_LAT = -0.5240097f ;
+                :STAND_LON = 116.637f ;
+                :POLE_LAT = 90.f ;
+                :POLE_LON = 0.f ;
+                :GMT = 0.f ;
+                :JULYR = 2023 ;
+                :JULDAY = 139 ;
+                :MAP_PROJ = 3 ;
+                :MAP_PROJ_CHAR = "Mercator" ;
+
+.
+.
+.
 ```
 
-
+### Example 2.1: Running ncdump
 ```console
+import sys
+from subprocess import Popen, PIPE, STDOUT
 
-```
+file_path = single_wrf_file()
 
+# This simply executes 'ncdump -h {wrf_file}' 
+# from Python
+p = Popen(["ncdump", "-h", "{}".format(file_path)], 
+          stdout=PIPE, stderr=STDOUT)
+output, _ = p.communicate()
 
-```console
-
-```
-
-
-```console
-
+# For Python 3.x, decode is needed to convert the raw text bytes back 
+# to a Python string so that Jupyter displays it correctly.
+if sys.version_info >= (3,):
+    print(output.decode())
+else:
+    print(output)
 ```
 
 
