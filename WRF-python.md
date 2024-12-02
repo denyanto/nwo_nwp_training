@@ -65,8 +65,7 @@ import condacolab
 condacolab.install()
 !conda install -c conda-forge wrf-python
 ```
-#
-### Verifying your Jupyter Environment
+### Example 1.3: Verifying your Jupyter Environment
 To set up the tutorial to work with your files, modify the **WRF_DIRECTORY** and **WRF_FILES** variables to point to your WRF files.
 **IMPORTANT**: If for some reason your workbook crashes, you need to run this cell again before running the later examples.
 ```console
@@ -247,6 +246,120 @@ print("my_masked")
 print(my_masked)
 print("\n")
 ```
+#
+## xarray
+* xarray expands upon numpy by adding dimension names, coordinate variables, and metadata.
+* xarray array (DataArray) objects wrap around a numpy array (NOT a numpy array subclasses).
+  * xarray HAS A numpy array (it is not an "IS A" relationship)
+  * Often have to extract the numpy array from the xarray array before passing it to extension modules
+  * Most numpy methods are available in xarray, but not all.
+### Creating an xarray Array from a numpy Array
+```console
+import numpy
+import xarray
 
+my_array = numpy.zeros((3,3,3), "float32")
+
+# Making up dimension names and 
+# coordinates.
+my_name = "my_xarray"
+
+my_dims = ["bottom_top", "south_north", "west_east"]
+
+my_coords = {"bottom_top" : [100., 200., 300.],
+             "south_north": [40., 50., 60.],
+             "west_east" : [-120., -110., -100.]
+            }
+
+my_attrs = {"info" : "This is my xarray"}
+
+my_xarray = xarray.DataArray(my_array,
+                             name=my_name,
+                             dims=my_dims, 
+                             coords=my_coords, 
+                             attrs=my_attrs)
+```
+### Example 1.3: Creating an xarray DataArray
+```console
+import numpy
+import xarray
+
+my_array = numpy.zeros((3,3,3), "float32")
+
+# Making up dimension names and 
+# coordinates.
+my_name = "my_xarray"
+
+my_dims = ["bottom_top", "south_north", "west_east"]
+
+my_coords = {"bottom_top" : [100., 200., 300.],
+          "south_north": [40., 50., 60.],
+          "west_east" : [-120., -110., -100.]
+         }
+
+my_attrs = {"info" : "This is my xarray"}
+
+my_xarray = xarray.DataArray(my_array,
+                           name=my_name,
+                           dims=my_dims, 
+                           coords=my_coords, 
+                           attrs=my_attrs)
+
+print(my_xarray)
+```
+### xarray and Missing Data Values
+* xarray always uses IEEE NaN for missing data values.
+  * Can cause problems with compiled numerical routines.
+  * Can cause problems for algorithms expecting MaskedArrays.
+* wrf-python includes the fill value information in the attribute section of the metadata (_FillValue).
+* The to_np routine can be used to convert xarray arrays to numpy/masked arrays.
+### Example 1.4: xarray and Missing Values
+```console
+import numpy
+import numpy.ma
+import xarray
+
+from wrf import to_np
+
+# Create a MaskedArray with 10.0 in the center
+my_array = numpy.zeros((3,3,3), "float32")
+
+my_array[1,1,1] = 10.0
+
+my_masked = numpy.ma.masked_equal(my_array, 0)
+
+# Making up dimension names and 
+# coordinates.
+my_name = "my_masked_xarray"
+
+my_dims = ["bottom_top", "south_north", "west_east"]
+
+my_coords = {"bottom_top" : [100., 200., 300.],
+          "south_north": [40., 50., 60.],
+          "west_east" : [-120., -110., -100.]
+         }
+
+my_attrs = {"info" : "This is my masked xarray",
+           "_FillValue" : -999.0}
+
+# Create the xarray DataArray
+my_xarray = xarray.DataArray(my_masked,
+                           name=my_name,
+                           dims=my_dims, 
+                           coords=my_coords, 
+                           attrs=my_attrs)
+
+print("xarray Array with Missing Values")
+print(my_xarray)
+print("\n")
+
+# Covert back to a MaskedArray
+converted = to_np(my_xarray)
+
+print("Converted to a MaskedArray with to_np")
+print(converted)
+```
+```console
+```
 ```console
 ```
