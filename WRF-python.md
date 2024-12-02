@@ -139,7 +139,6 @@ print("All tests passed!")
   * bool
   * complex64, complex128
 * Arrays can be C-ordered (fastest on right) or Fortran-ordered (fastest on left). C-ordered by default.
-#
 ### Numpy Basics
 #### Array Creation
 In this example, we're going to create an array of all zeros with 3x3x3 shape.
@@ -156,12 +155,97 @@ You can use also negative indexes to pick indexes from the end.
 ```console
 import numpy
 my_array = numpy.zeros((3,3,3), "float32")
+
 # Accessing elements
 first_element = my_array[0,0,0]
 last_element = my_array[-1,-1,-1]
 mid_element = my_array[1,1,1]
+
 # Setting an element
 my_array[1,1,1] = 10.0
+```
+#### Slices
+* Slices are a way to extract array subsets from an array.
+* The syntax for a slice is the ':' character.
+* Specifying the ':' for a dimension will return all values along that dimension.
+* Specifying 'start : end' will take a subset of that dimension. Also, either start or end can be left blank.
+* The end index is NOT included in the sliced data (opposite of NCL).
+* Can also use a step value with 'start : end : step' if you want to increment values with something other than 1.
+```console
+import numpy
+my_array = numpy.zeros((3,3,3), "float32")
+first_row = my_array[0,0,:]
+first_column = my_array[0,:,0]
+first_z = my_array[:,0,0]
+subset = my_array[:, :, 1:3]
+reverse_z = my_array[::-1, :, :]
+```
+
+Also, slices are implicitly applied from left to right for unspecified dimensions.
+```console
+import numpy
+my_array = numpy.zeros((3,3,3), "float32")
+first_plane = my_array[0,:,:]
+
+# This is the same as first_plane
+first_plane2 = my_array[0]
+
+# A short way to get everything
+# Same as my_array[:,:,:]
+all_elements = my_array[:]
+```
+#### Masked Arrays
+* numpy uses a numpy array subclass called a MaskedArray.
+* MaskedArrays contain a data array and a boolean mask array (True/False).
+* Usually a fill_value is set in the data array at each location where the mask array is True.
+* Numerous ways to convert a regular numpy array to a MaskedArray:
+  * masked_equal
+  * masked_greater
+  * masked_where
+#### Creating a MaskedArray
+```console
+import numpy
+import numpy.ma
+
+my_array = numpy.zeros((3,3,3), "float32")
+
+# Now all the array elements are masked values
+my_masked = numpy.ma.masked_equal(my_array, 0)
+```
+### Example 1.2: Numpy Basics
+```console
+import numpy
+import numpy.ma
+
+my_array = numpy.zeros((3,3,3), "float32")
+
+print("my_array")
+print(my_array)
+print("\n")
+
+# Setting an element
+my_array[1,1,1] = 10.0
+
+# Getting an element
+mid = my_array[1,1,1]
+
+print("Mid element set")
+print(my_array)
+print("\n")
+
+# Getting a slice
+my_slice = my_array[1,:,:]
+
+print("my_slice")
+print(my_slice)
+print("\n")
+
+# Masking the zeros
+my_masked = numpy.ma.masked_equal(my_array, 0)
+
+print("my_masked")
+print(my_masked)
+print("\n")
 ```
 
 ```console
