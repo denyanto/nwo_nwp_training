@@ -359,7 +359,77 @@ converted = to_np(my_xarray)
 print("Converted to a MaskedArray with to_np")
 print(converted)
 ```
+#
+## 2.0 Overview of WRF Output Data
+The first rule of data processing:
+**"ALWAYS LOOK AT YOUR DATA"**
+
+Why Look At WRF Data? Isn't It All the Same?
+WRF can be configured in various ways and can have variables turned on and off.
+If you run in to problems, it could be due to a variable missing.
+Some users intentionally move the coordinate variables to a separate file to save space (not supported by NCL or wrf-python).
+If your plot doesn't look right, there could be a map projection issue.
+### Data Viewing Tools
+There are numerous tools available to examine NetCDF data, from both outside and inside of Python.
+* ncdump (used for this example)
+* ncl_filedump
+* netcdf4-python
+* PyNIO
+* xarray
+### ncdump
+ncdump is a program included with the NetCDF libraries that can be used to examine NetCDF data.
+By supplying the '-h' option, only the data descriptions are returned. Otherwise, you'll get all of the data values, which can span miles.
+To run:
 ```console
+$ ncdump -h wrfout_d01_2023-05-19_00%3A00%3A00
 ```
+### ncdump Output
 ```console
+dimensions:
+        Time = UNLIMITED ; // (1 currently)
+        DateStrLen = 19 ;
+        west_east = 89 ;
+        south_north = 89 ;
+        bottom_top = 34 ;
+        bio_emissions_dimension_stag = UNLIMITED ; // (0 currently)
+        klevs_for_dvel = 1 ;
+        bottom_top_stag = 35 ;
+        soil_layers_stag = 4 ;
+        west_east_stag = 90 ;
+        south_north_stag = 90 ;
+        seed_dim_stag = 8 ;
+variables:
+        char Times(Time, DateStrLen) ;
+...
+
+```
+
+### Dimensions
+* WRF-ARW uses an Arakawa C-grid staggered grid [(taken from mmm website)] 1
+* Mass related quantities (pressure, temperature, etc) are computed at the center of a grid cell.
+* The u-component of the horizontal wind is calculated at the left and right edges of a grid cell. It has one more point in the x direction than the mass grid.
+* The v-component of the horizontal wind is calculated at the bottom and top edges of a grid cell. It has one more point in the y direction than the mass grid.
+* The corners of each grid box are know as the 'staggered' grid, and it has one additional point in both the x and y direction.
+```console
+
+```
+
+
+```console
+
+```
+
+
+```console
+
+```
+
+
+```console
+
+```
+
+
+```console
+
 ```
