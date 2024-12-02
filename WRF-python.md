@@ -58,3 +58,64 @@ If you want to shutting down your notebook:
 ## 1.1 Verifying your Jupyter Environment
 To set up the tutorial to work with your files, modify the **WRF_DIRECTORY** and **WRF_FILES** variables to point to your WRF files.
 **IMPORTANT**: If for some reason your workbook crashes, you need to run this cell again before running the later examples.
+```console
+from __future__ import print_function
+
+# This jupyter notebook command inserts matplotlib graphics in 
+# to the workbook
+%matplotlib inline
+
+# Modify these to point to your own files
+WRF_DIRECTORY = "../wrf_output"
+WRF_FILES = ["wrfout_d01_2023-05-19_02%3A00%3A00",
+             "wrfout_d01_2023-05-19_01%3A00%3A00",
+             "wrfout_d01_2023-05-19_00%3A00%3A00"]
+
+
+# Do not modify the code below this line
+#------------------------------------------------------
+# Turn off annoying warnings
+import warnings
+warnings.filterwarnings('ignore')
+
+# Make sure the environment is good
+import numpy
+import cartopy
+import matplotlib
+from netCDF4 import Dataset
+from xarray import DataArray
+from wrf import (getvar, interplevel, vertcross, 
+                 vinterp, ALL_TIMES)
+import os
+
+_WRF_FILES = [os.path.abspath(
+    os.path.join(WRF_DIRECTORY, f)) for f in WRF_FILES]
+
+# Check that the WRF files exist
+try:
+    for f in _WRF_FILES:
+        if not os.path.exists(f):
+            raise ValueError("{} does not exist. "
+                "Check for typos or incorrect directory.".format(f))
+except ValueError as e:
+    # Try downloading then check again
+    os.system("git submodule init")
+    os.system("git submodule update")
+    os.system("GIT_DIR={}/.git git checkout -- .".format(WRF_DIRECTORY))
+    for f in _WRF_FILES:
+        if not os.path.exists(f):
+             raise e
+
+
+# Create functions so that the WRF files only need
+# to be specified using the WRF_FILES global above
+def single_wrf_file():
+    global _WRF_FILES
+    return _WRF_FILES[0]
+
+def multiple_wrf_files():
+    global _WRF_FILES
+    return _WRF_FILES
+
+print("All tests passed!")
+```
