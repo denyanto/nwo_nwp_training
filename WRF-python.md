@@ -605,6 +605,58 @@ print ("P array at time 0:")
 print (p_t0_data)
 print ("\n")
 ```
+#
+## 3 WRF-Python Functions
+WRF-Python provides functionality similar to what is found in the NCL-WRF package:
+* Over 30 diagnostics calculations.
+* Several interpolation routines (horizontal level, vertical cross section, horizontal "surface").
+* Plot helper utilities for cartopy, basemap, and PyNGL.
+* WRF-ARW only.
+
+The most commonly used functions:
+* getvar: Extracts variables and diagnostic variables.
+* interplevel: Linearly interpolates a 3D variable to a horizontal plane at a specified vertical level.
+* vertcross: Interpolates a 3D variable to a vertical cross section.
+* vinterp: Interpolates a 3D variable to a new surface (e.g. theta-e).
+
+### The getvar function
+The getvar function can be used to:
+* Extract NetCDF variables from a file, similar to netcdf4-python or PyNIO.
+* Compute diagnostic variables.
+* Concatenate a variable (either NetCDF or diagnostic) across multiple files.
+
+### Getting the NetCDF HGT Variable with getvar
+```console
+from netCDF4 import Dataset
+from wrf import getvar
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+hgt = getvar(wrf_file, "HGT", timeidx=0)
+```
+### Example 3.1: Using getvar to Extract a WRF NetCDF Variable
+```console
+from netCDF4 import Dataset
+from wrf import getvar
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+hgt = getvar(wrf_file, "HGT", timeidx=0)
+print(hgt)
+```
+### Computing a Diagnostic Variable with getvar
+In this example, we're going to compute sea level pressure.
+```console
+
+```
+
+```console
+
+```
+
+```console
+
+```
 
 ```console
 
