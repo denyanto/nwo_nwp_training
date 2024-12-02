@@ -486,27 +486,125 @@ dimensions:
 .
 ```
 
-### Example 2.1: Running ncdump
+### Reading a WRF File in Python
+You have several options to read a WRF NetCDF file in Python.
+* netcdf4-python
+* PyNIO (Python 3.x available on conda-forge)
+* xarray (xarray.Dataset type not currently supported in wrf-python)
+
+### Example 2.1: Using netcdf4-python
 ```console
-import sys
-from subprocess import Popen, PIPE, STDOUT
+from netCDF4 import Dataset
 
-file_path = single_wrf_file()
-
-# This simply executes 'ncdump -h {wrf_file}' 
-# from Python
-p = Popen(["ncdump", "-h", "{}".format(file_path)], 
-          stdout=PIPE, stderr=STDOUT)
-output, _ = p.communicate()
-
-# For Python 3.x, decode is needed to convert the raw text bytes back 
-# to a Python string so that Jupyter displays it correctly.
-if sys.version_info >= (3,):
-    print(output.decode())
-else:
-    print(output)
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+wrf_file = Dataset(file_path)
+print(wrf_file)
 ```
 
+### Getting Variables and Attributes
+* netcdf4-python uses an old API that was originally created for a package called Scientific.IO.NetCDF.
+* PyNIO also uses this API.
+* xarray does not use this API.
+* The API may look a little dated.
+
+### Getting global attributes
+The get the full dictionary of global attributes, use the __dict__ attribute.
+To work with one attribute at a time, you can use the getncattr and setncattr methods.
+```console
+global_attrs = wrf_file.__dict__
+
+# To get the value for MAP_PROJ, you can do:
+map_proj = wrf_file.__dict__["MAP_PROJ"]
+
+# Or more cleanly
+map_proj = wrf_file.getncattr("MAP_PROJ")
+
+# Or for those that know __dict__ is where the class members are stored
+map_proj = wrf_file.MAP_PROJ
+```
+### Getting Variables, Variable Attributes, and Variable Data
+All variables are stored in a dictionary attribute called variables.
+Let's get the perturbation pressure "P" variable.
+```console
+# This will return a netCDF4.Variable object
+p = wrf_file.variables["P"]
+```
+To get the variable attributes, you can use the __dict__ attribute to get a dictionary of all attributes.
+Use the getncattr function if you already know the attribute name.
+```console
+# Return a dictionary of all of P's 
+# attributes
+p_attrs = p.__dict__
+
+# Let's just get the 'coordinates' attribute
+p_coords = p.getncattr("coordinates")
+
+# Or using the class attribute directly
+p_coords = p.coordinates
+```
+To get the variable's data as a numpy array, you need to use Python's bracket "[ ]" syntax.
+```console
+# Get a numpy array for all times
+p_all_data = p[:,:,:,:]
+
+# A shorthand version of the above.
+p_all_data = p[:]
+
+# This will extract the numpy array for 
+# time index 0.
+p_t0_data = p[0,:]
+```
+### Example 2.2: Variables, Attributes, and Data with netcd4-python
+```console
+from netCDF4 import Dataset
+
+file_path = "/content/drive/MyDrive/Colab Notebooks/WRF_train/wrf_output/wrfout_d01_2023-05-19_00%3A00%3A00"
+
+# Create the netCDF4.Dataset object
+wrf_file = Dataset(file_path)
+
+# Get the global attribute dict
+global_attrs = wrf_file.__dict__
+print ("Global attributes for the file")
+print(global_attrs)
+print ("\n")
+
+# Just get the 'MAP_PROJ' attribute
+map_proj = wrf_file.getncattr("MAP_PROJ")
+print ("The MAP_PROJ attribute:")
+print (map_proj)
+print("\n")
+
+# Get the perturbation pressure variable
+p = wrf_file.variables["P"]
+print ("The P variable: ")
+print(p)
+print ("\n")
+
+# Get the P attributes
+p_attrs = p.__dict__
+print ("The attribute dict for P")
+print (p_attrs)
+print ("\n")
+
+# Get the 'coordinates' attribute for P
+coords = p.getncattr("coordinates")
+print ("Coordinates for P:")
+print (coords)
+print ("\n")
+
+# Get the P numpy array for all times
+p_all_data = p[:]
+print ("The P numpy array: ")
+print (p_all_data)
+print ("\n")
+
+# Get the P numpy array for time 0
+p_t0_data = p[0,:]
+print ("P array at time 0:")
+print (p_t0_data)
+print ("\n")
+```
 
 ```console
 
